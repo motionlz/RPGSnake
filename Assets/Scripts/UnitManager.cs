@@ -19,7 +19,7 @@ public class UnitManager : MonoBehaviour
 
     public virtual void Awake() 
     {
-        currentHp = status.hp;
+        ResetValue();
     }
     private void OnEnable() 
     {
@@ -29,8 +29,12 @@ public class UnitManager : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody2D>();
         boxCollider = GetComponent<BoxCollider2D>();
+    }
 
-
+    public void ResetValue()
+    {
+        currentHp = status.hp;
+        UpdateUI();
     }
 
     public virtual void UpdateUI()

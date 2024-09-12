@@ -105,7 +105,7 @@ MonoBehaviour:
   statUI: {fileID: 8013097660722517}
   status:
     atk: 3
-    def: 3
+    def: 2
     hp: 10
 --- !u!50 &4585686623807054277
 Rigidbody2D:

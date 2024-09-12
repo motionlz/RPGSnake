@@ -18,19 +18,20 @@ public class GameManager : MonoBehaviour
     [SerializeField] Transform startPosition;
     [SerializeField] int startEnemyCount;
     [SerializeField] int startRecruitHeroCount;
-    [SerializeField] List<UnitSpawnChance> enemySpawnChance = new List<UnitSpawnChance>();
-    [SerializeField] List<UnitSpawnChance> heroSpawnChance = new List<UnitSpawnChance>();
+    [SerializeField] List<UnitSpawnChance> enemyTypeSpawnChance = new List<UnitSpawnChance>();
+    [SerializeField] List<UnitSpawnChance> heroTypeSpawnChance = new List<UnitSpawnChance>();
 
     [Header("Max Spawn Setting")]
     [SerializeField] int maxHero;
     [SerializeField] int maxEnemy;
 
     [Header("Wave Setting")]
-    [SerializeField, Range(0,100)] int heroChanceWhenKilled;
+    [SerializeField] List<UnitSpawnChance> heroSpawnChance = new List<UnitSpawnChance>();
     [SerializeField] float waveToAddMoreEnemy;
 
     private int currentWave;
-    [SerializeField] private List<EnemyController> enemyOnMapList = new List<EnemyController>();
+    private bool isStart = false;
+    private List<EnemyController> enemyOnMapList = new List<EnemyController>();
     private List<HeroController> heroOnMapList = new List<HeroController>();
     private void Awake() 
     {
@@ -48,6 +49,7 @@ public class GameManager : MonoBehaviour
         await Task.Delay(1);
 
         ResetGame();
+        PlayerManager.Instance.StartSetup(startHero, startPosition.position);
         SpawnEnemyUnit(startEnemyCount);
         SpawnHeroUnit(startRecruitHeroCount);
     }
@@ -71,7 +73,8 @@ public class GameManager : MonoBehaviour
     }
     public void DeadEnemyRemove(EnemyController enemy)
     {
-        enemyOnMapList.Remove(enemy);
+        if(enemyOnMapList.Contains(enemy))
+            enemyOnMapList.Remove(enemy);
 
         if(enemyOnMapList.Count <= 0)
         {
@@ -87,15 +90,19 @@ public class GameManager : MonoBehaviour
     private void NewEnemyWave(int wave)
     {
         SpawnEnemyUnit(Mathf.Clamp(startEnemyCount + (int)(wave / waveToAddMoreEnemy), 0, maxEnemy));
+        if (PlayerManager.Instance.GetHeroCount() + heroOnMapList.Count < maxHero)
+            SpawnHeroUnit(int.Parse(RandomUnitType(heroSpawnChance)));
     }
     public void SpawnEnemyUnit(int value)
     {
         for (int i = 0; i < value; i++) 
         {
-            var unit = RandomUnitType(enemySpawnChance);
+            var unit = RandomUnitType(enemyTypeSpawnChance);
             if (unit != null)
             {
-                enemyOnMapList.Add(SpawnInArea<EnemyController>(unit));
+                var spawnObj = SpawnInArea<EnemyController>(unit);
+                enemyOnMapList.Add(spawnObj);
+                spawnObj.ResetValue();
             }
         }
     }
@@ -103,10 +110,12 @@ public class GameManager : MonoBehaviour
     {
         for (int i = 0; i < value; i++) 
         {
-            var unit = RandomUnitType(heroSpawnChance);
+            var unit = RandomUnitType(heroTypeSpawnChance);
             if (unit != null)
             {
-                SpawnInArea<HeroController>(unit);
+                var spawnObj = SpawnInArea<HeroController>(unit);
+                heroOnMapList.Add(spawnObj);
+                spawnObj.ResetValue();
             }
         }
     }

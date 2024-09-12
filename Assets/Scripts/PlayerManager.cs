@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -32,8 +34,6 @@ public class PlayerManager : MonoBehaviour
 
         playercontrol = new PlayerControl();
         playercontrol.Player.Movement.performed += ctx => MovePlay(ctx.ReadValue<Vector2>());
-
-        SetMarker();
     }
     private void OnEnable() 
     {
@@ -44,6 +44,24 @@ public class PlayerManager : MonoBehaviour
         playercontrol.Disable();
     }
 
+    public void StartSetup(String heroClass,Vector2 position)
+    {
+        ResetValue();
+        var obj = ObjectPooling.Instance.GetFromPool(heroClass, position, Quaternion.identity);
+        positionHistory.Add(position);
+        transform.position = position;
+        GetNewHero(obj.GetComponent<HeroController>());
+        SetMarker();
+    }
+
+    private void ResetValue()
+    {
+        heroList.Clear();
+        positionHistory.Clear();
+
+        isMoving = false;
+        lastestMove = new Vector2();
+    }
     private void OnTriggerEnter2D(Collider2D col) 
     {
         if (col.gameObject.tag == "RecruitHero")
@@ -59,6 +77,8 @@ public class PlayerManager : MonoBehaviour
 
     private async void GetNewHero(HeroController hero)
     {
+        if (heroList.Contains(hero))
+            return;
         heroList.Add(hero);
         await AddHeroToLine(hero.gameObject);
 
@@ -157,7 +177,10 @@ public class PlayerManager : MonoBehaviour
 
         heroList.Remove(hero);
         if(heroList.Count <= 0)
+        {
             GameManager.Instance.EndGame();
+            return;
+        }
         ClearOldHistory();
         SetMarker();
     }
@@ -181,5 +204,10 @@ public class PlayerManager : MonoBehaviour
     public bool IsPositionNotUsed(Vector2 position)
     {
         return !positionHistory.Contains(position);
+    }
+
+    public int GetHeroCount()
+    {
+        return heroList.Count;
     }
 }
