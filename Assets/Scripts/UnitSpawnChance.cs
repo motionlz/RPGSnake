@@ -1,11 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 [System.Serializable]
-public struct HeroStatus
+public struct UnitSpawnChance
 {
-    public float atk;
-    public float def;
-    public float hp;
+    public String unit;
+    public float spawnChance;
 }

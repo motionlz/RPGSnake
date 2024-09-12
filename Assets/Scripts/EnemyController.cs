@@ -3,22 +3,22 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
-public class HeroController : UnitManager
+public class EnemyController : UnitManager
 {
     private void OnTriggerEnter2D(Collider2D col) 
     {
-        if (col.gameObject.tag == "Enemy")
+        if (col.gameObject.tag == "LineHero")
         {
             TakeDamage(col.GetComponent<UnitManager>().status.atk);
             CheckDead();
         }
     }
 
-    public override async void CheckDead()
+    public override void CheckDead()
     {
         if (HpCheck())
         {
-            await PlayerManager.Instance.RemoveHeroFromLine(this);
+            GameManager.Instance.DeadEnemyRemove(this);
         }
         base.CheckDead();
     }

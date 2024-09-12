@@ -15,4 +15,13 @@ public class StatUIManager : MonoBehaviour
     {
         gameObject.SetActive(active);
     }
+
+    public void SetValue(float currentHp, float maxHp, float atk, float def)
+    {
+        hpBar.maxValue = maxHp;
+        hpBar.value = currentHp;
+
+        atkText.text = atk.ToString();
+        defText.text = def.ToString();
+    }
 }

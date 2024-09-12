@@ -3,7 +3,10 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - RecruitHero
+  - LineHero
+  - Enemy
   layers:
   - Default
   - TransparentFX
@@ -38,6 +41,18 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Floor
+    uniqueID: 460230393
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Player
+    uniqueID: 2889409837
+    locked: 0
+  - name: Wall
+    uniqueID: 1972728751
+    locked: 0
+  - name: UI
+    uniqueID: 1169935911
     locked: 0

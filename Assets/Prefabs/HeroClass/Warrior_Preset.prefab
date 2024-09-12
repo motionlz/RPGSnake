@@ -102,11 +102,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rigidbody: {fileID: 4585686623807054277}
   boxCollider: {fileID: 1620889112194085442}
-  baseStat:
-    atk: 2
+  statUI: {fileID: 8013097660722517}
+  status:
+    atk: 3
     def: 3
     hp: 10
-  statUI: {fileID: 8013097660722517}
 --- !u!50 &4585686623807054277
 Rigidbody2D:
   serializedVersion: 4

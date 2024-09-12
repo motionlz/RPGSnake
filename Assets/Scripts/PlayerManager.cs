@@ -6,7 +6,9 @@ using UnityEngine.Tilemaps;
 
 public class PlayerManager : MonoBehaviour
 {
-    public static PlayerManager Instance;
+    public static PlayerManager Instance => instance;
+    private static PlayerManager instance;
+
     [Header("Tilemap Settings")]
     [SerializeField] Tilemap floorTile;
     [SerializeField] Tilemap wallTile;
@@ -22,13 +24,14 @@ public class PlayerManager : MonoBehaviour
     private bool isMoving = false;
     private PlayerControl playercontrol;
     private Vector2 lastestMove = new Vector2();
+
     private void Awake() 
     {
-        if (Instance == null)
-            Instance = this;
+        if (instance == null)
+            instance = this;
 
         playercontrol = new PlayerControl();
-        playercontrol.Player.Movement.performed += ctx => MoveHead(ctx.ReadValue<Vector2>());
+        playercontrol.Player.Movement.performed += ctx => MovePlay(ctx.ReadValue<Vector2>());
 
         SetMarker();
     }
@@ -41,26 +44,54 @@ public class PlayerManager : MonoBehaviour
         playercontrol.Disable();
     }
 
-    public async void MoveHead(Vector2 direction)
+    private void OnTriggerEnter2D(Collider2D col) 
+    {
+        if (col.gameObject.tag == "RecruitHero")
+        {
+            GetNewHero(col.GetComponent<HeroController>());
+        }
+        else if (col.gameObject.tag == "LineHero")
+        {
+            if (col.GetComponent<HeroController>() != heroList[0])
+                GameManager.Instance.EndGame();
+        }
+    }
+
+    private async void GetNewHero(HeroController hero)
+    {
+        heroList.Add(hero);
+        await AddHeroToLine(hero.gameObject);
+
+        hero.gameObject.tag = "LineHero";
+        hero.gameObject.GetComponent<HeroController>().ActiveUI(true);
+    }
+
+#region Moving Function
+    private void MovePlay(Vector2 direction)
     {
         if (MoveCheck(direction) && !isMoving)
         {
-            positionHistory.Add(transform.position + (Vector3)direction);
-
-            transform.position += (Vector3)direction;
-            lastestMove = direction;
-
-            isMoving = true;
-            List<Task> tasks = new List<Task>();
-            for (int i = 0; i < heroList.Count; i++)
-            {
-                tasks.Add(MoveHero(heroList[i].gameObject,positionHistory[heroList.Count - i]));
-            } 
-            await Task.WhenAll(tasks);
-            isMoving = false;
-
-            ClearOldHistory();
+            MoveHead(direction);
+            GameManager.Instance.EnemyAction();
         }
+    }
+    public async void MoveHead(Vector2 direction)
+    {
+        positionHistory.Add(transform.position + (Vector3)direction);
+
+        transform.position += (Vector3)direction;
+        lastestMove = direction;
+
+        isMoving = true;
+        List<Task> tasks = new List<Task>();
+        for (int i = 0; i < heroList.Count; i++)
+        {
+            tasks.Add(MoveHero(heroList[i].gameObject,positionHistory[heroList.Count - i]));
+        } 
+        await Task.WhenAll(tasks);
+        isMoving = false;
+
+        ClearOldHistory();
     }
 
     private async Task MoveHero(GameObject hero,Vector2 direction)
@@ -91,25 +122,10 @@ public class PlayerManager : MonoBehaviour
             return false;
         return true;
     }
+#endregion
 
-    private async void OnTriggerEnter2D(Collider2D col) 
-    {
-        if (col.gameObject.tag == "RecruitHero")
-        {
-            heroList.Add(col.GetComponent<HeroController>());
-            await NewHeroAdd(col.gameObject);
-
-            col.gameObject.tag = "LineHero";
-            col.gameObject.GetComponent<HeroController>().ActiveUI(true);
-        }
-        else if (col.gameObject.tag == "LineHero")
-        {
-            if (col.GetComponent<HeroController>() != heroList[0])
-                Debug.Log("Game Over");
-        }
-    }
 #region ADD/REMOVE HERO
-    private async Task NewHeroAdd(GameObject hero)
+    private async Task AddHeroToLine(GameObject hero)
     {
         float elapsedTime = 0;
         var startPosition = hero.transform.position;
@@ -128,25 +144,29 @@ public class PlayerManager : MonoBehaviour
         isMoving = false;
     }
 
-    public async Task RemoveHero(HeroController hero)
+    public async Task RemoveHeroFromLine(HeroController hero)
     {
         isMoving = true;
         List<Task> tasks = new List<Task>();
         for(int i = heroList.IndexOf(hero) + 1; i < heroList.Count; i++)
         {
-            tasks.Add(MoveHero(heroList[i].gameObject, positionHistory[heroList.Count - 1 - i]));
+            tasks.Add(MoveHero(heroList[i].gameObject, positionHistory[heroList.Count - i]));
         }
         await Task.WhenAll(tasks);
         isMoving = false;
 
         heroList.Remove(hero);
+        if(heroList.Count <= 0)
+            GameManager.Instance.EndGame();
         ClearOldHistory();
+        SetMarker();
     }
 #endregion
 
     private void SetMarker()
     {
         playerMarker.transform.SetParent(heroList[0].transform);
+        playerMarker.transform.localPosition = Vector2.zero;
     }
     private void ClearOldHistory()
     {
@@ -157,5 +177,9 @@ public class PlayerManager : MonoBehaviour
                 positionHistory.RemoveAt(0);
             }
         }
+    }
+    public bool IsPositionNotUsed(Vector2 position)
+    {
+        return !positionHistory.Contains(position);
     }
 }
