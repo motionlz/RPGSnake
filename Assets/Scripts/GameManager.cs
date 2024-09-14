@@ -9,6 +9,7 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance => instance;
     private static GameManager instance;
+    [SerializeField] MenuUIManager menuUIManager;
 
     [Header("Game Area")]
     [SerializeField] List<Transform> areaMarker = new List<Transform>();
@@ -56,11 +57,13 @@ public class GameManager : MonoBehaviour
     public void ResetGame()
     {
         currentWave = 1;
-        enemyOnMapList.Clear();
-        heroOnMapList.Clear();
+        RemoveHeroFromMap();
+        RemoveEnemyFromMap();
     }
     public void EndGame()
     {
+        PlayerManager.Instance.SetMoveable(false);
+        menuUIManager.ShowDialog();
         Debug.Log("Game Over");
     }
 
@@ -70,6 +73,22 @@ public class GameManager : MonoBehaviour
         {
 
         }
+    }
+    private void RemoveHeroFromMap()
+    {
+        foreach (HeroController hero in heroOnMapList)
+        {
+            hero.gameObject.SetActive(false);
+        }
+        heroOnMapList.Clear();
+    }
+    private void RemoveEnemyFromMap()
+    {
+        foreach (EnemyController enemy in enemyOnMapList)
+        {
+            enemy.gameObject.SetActive(false);
+        }
+        enemyOnMapList.Clear();
     }
     public void DeadEnemyRemove(EnemyController enemy)
     {

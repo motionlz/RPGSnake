@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -13,7 +14,6 @@ public class PlayerManager : MonoBehaviour
 
     [Header("Tilemap Settings")]
     [SerializeField] Tilemap floorTile;
-    [SerializeField] Tilemap wallTile;
 
     [Header("Move Stat")]
     [SerializeField] float moveDuration = 0.1f;
@@ -47,6 +47,8 @@ public class PlayerManager : MonoBehaviour
     public void StartSetup(String heroClass,Vector2 position)
     {
         ResetValue();
+        SetMoveable(true);
+        
         var obj = ObjectPooling.Instance.GetFromPool(heroClass, position, Quaternion.identity);
         positionHistory.Add(position);
         transform.position = position;
@@ -56,11 +58,23 @@ public class PlayerManager : MonoBehaviour
 
     private void ResetValue()
     {
+        foreach(var hero in heroList)
+        {
+            hero.gameObject.SetActive(false);
+        }
         heroList.Clear();
         positionHistory.Clear();
 
         isMoving = false;
         lastestMove = new Vector2();
+    }
+
+    public void SetMoveable(bool canMove)
+    {
+        if (canMove)
+            playercontrol.Enable();
+        else
+            playercontrol.Disable();
     }
     private void OnTriggerEnter2D(Collider2D col) 
     {
