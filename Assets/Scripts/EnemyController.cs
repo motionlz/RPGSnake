@@ -1,25 +1,22 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
 public class EnemyController : UnitManager
 {
-    private void OnTriggerEnter2D(Collider2D col) 
-    {
-        if (col.gameObject.tag == "LineHero")
-        {
-            TakeDamage(col.GetComponent<UnitManager>().status.atk);
-            CheckDead();
-        }
-    }
-
+    protected override string OppositeSideTag => GlobalTag.LINE_HERO;
+    public event Action<EnemyController> OnEnemyDead;
+    [Header("Move Stat")]
+    [SerializeField] bool canMove;
+    [SerializeField] int turnToMove;
     public override void CheckDead()
     {
-        if (HpCheck())
-        {
-            GameManager.Instance.DeadEnemyRemove(this);
-        }
+        if (IsDead())
+            OnEnemyDead.Invoke(this);
         base.CheckDead();
     }
 }
+

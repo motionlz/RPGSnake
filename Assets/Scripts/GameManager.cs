@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -10,6 +11,7 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance => instance;
     private static GameManager instance;
     [SerializeField] MenuUIManager menuUIManager;
+    [SerializeField] PlayerManager player;
 
     [Header("Game Area")]
     [SerializeField] List<Transform> areaMarker = new List<Transform>();
@@ -20,7 +22,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] int startEnemyCount;
     [SerializeField] int startRecruitHeroCount;
     [SerializeField] List<UnitSpawnChance> enemyTypeSpawnChance = new List<UnitSpawnChance>();
+    private List<String> enemyTypePool = new List<String>();
     [SerializeField] List<UnitSpawnChance> heroTypeSpawnChance = new List<UnitSpawnChance>();
+    private List<String> heroTypePool = new List<String>();
 
     [Header("Max Spawn Setting")]
     [SerializeField] int maxHero;
@@ -28,6 +32,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Wave Setting")]
     [SerializeField] List<UnitSpawnChance> heroSpawnChance = new List<UnitSpawnChance>();
+    private List<String> heroSpawnChancePool = new List<String>();
     [SerializeField] float waveToAddMoreEnemy;
 
     private int currentWave;
@@ -50,10 +55,25 @@ public class GameManager : MonoBehaviour
         await Task.Delay(1);
 
         ResetGame();
-        PlayerManager.Instance.StartSetup(startHero, startPosition.position);
+        SetupPlayer();
         SpawnEnemyUnit(startEnemyCount);
         SpawnHeroUnit(startRecruitHeroCount);
     }
+    private void SetupPlayer()
+    {
+        SetUpChancePool(heroSpawnChancePool, heroSpawnChance);
+        SetUpChancePool(enemyTypePool, enemyTypeSpawnChance);
+        SetUpChancePool(heroTypePool, heroTypeSpawnChance);
+
+        var obj = ObjectPooling.Instance.GetFromPool(startHero, startPosition.position, Quaternion.identity);
+        var hero = obj.GetComponent<HeroController>();
+        hero.OnHeroDead += player.RemoveHero;
+        player.StartSetup(hero,startPosition.position);
+
+        //player.OnMoveEnd += EnemyAction;
+        player.OnGameEnd += EndGame;
+    }
+
     public void ResetGame()
     {
         currentWave = 1;
@@ -62,7 +82,7 @@ public class GameManager : MonoBehaviour
     }
     public void EndGame()
     {
-        PlayerManager.Instance.SetMoveable(false);
+        player.SetMoveable(false);
         menuUIManager.ShowDialog();
         Debug.Log("Game Over");
     }
@@ -71,7 +91,7 @@ public class GameManager : MonoBehaviour
     {
         foreach(EnemyController enemy in enemyOnMapList)
         {
-
+            
         }
     }
     private void RemoveHeroFromMap()
@@ -108,20 +128,24 @@ public class GameManager : MonoBehaviour
 #region SPAWNER
     private void NewEnemyWave(int wave)
     {
+        if (waveToAddMoreEnemy == 0)
+            return;
+    
         SpawnEnemyUnit(Mathf.Clamp(startEnemyCount + (int)(wave / waveToAddMoreEnemy), 0, maxEnemy));
-        if (PlayerManager.Instance.GetHeroCount() + heroOnMapList.Count < maxHero)
-            SpawnHeroUnit(int.Parse(RandomUnitType(heroSpawnChance)));
+        if (player.GetHeroCount() + heroOnMapList.Count < maxHero)
+            SpawnHeroUnit(int.Parse(RandomUnitType(heroSpawnChancePool)));
     }
     public void SpawnEnemyUnit(int value)
     {
         for (int i = 0; i < value; i++) 
         {
-            var unit = RandomUnitType(enemyTypeSpawnChance);
+            var unit = RandomUnitType(enemyTypePool);
             if (unit != null)
             {
                 var spawnObj = SpawnInArea<EnemyController>(unit);
+                spawnObj.OnEnemyDead += DeadEnemyRemove;
                 enemyOnMapList.Add(spawnObj);
-                spawnObj.ResetValue();
+                spawnObj.RestoreHP();
             }
         }
     }
@@ -129,12 +153,13 @@ public class GameManager : MonoBehaviour
     {
         for (int i = 0; i < value; i++) 
         {
-            var unit = RandomUnitType(heroTypeSpawnChance);
+            var unit = RandomUnitType(heroTypePool);
             if (unit != null)
             {
                 var spawnObj = SpawnInArea<HeroController>(unit);
+                spawnObj.OnHeroDead += player.RemoveHero;
                 heroOnMapList.Add(spawnObj);
-                spawnObj.ResetValue();
+                spawnObj.RestoreHP();
             }
         }
     }
@@ -144,18 +169,20 @@ public class GameManager : MonoBehaviour
         return obj.GetComponent<T>();
     }
     
-    private String RandomUnitType(List<UnitSpawnChance> unitChances)
+    private void SetUpChancePool(List<String> pool,List<UnitSpawnChance> unitChances)
     {
-        List<String> randomList = new List<String>();
+        pool.Clear();
         foreach(var u in unitChances)
         {
             for(int i = 0; i < u.spawnChance; i++)
             {
-                randomList.Add(u.unit);
+                pool.Add(u.unit);
             }
         }
-        var obj = randomList[UnityEngine.Random.Range(0, randomList.Count)];
-        return obj;
+    }
+    private String RandomUnitType(List<String> pool)
+    {
+        return pool[UnityEngine.Random.Range(0, pool.Count)];
     }
     private Vector2 RandomSpawnPointFromMarker()
     {
@@ -168,7 +195,7 @@ public class GameManager : MonoBehaviour
             yPosition = UnityEngine.Random.Range(GetPoint(Point.minY), GetPoint(Point.maxY));
 
             var checkPosition = new Vector2(xPosition, yPosition);
-            isSafePosition = PlayerManager.Instance.IsPositionNotUsed(checkPosition)
+            isSafePosition = player.IsPositionNotUsed(checkPosition)
             && IsPositionNotUsed(checkPosition, enemyOnMapList.Select(t => (Vector2)t.transform.position).ToList())
             && IsPositionNotUsed(checkPosition, heroOnMapList.Select(t => (Vector2)t.transform.position).ToList());
         }

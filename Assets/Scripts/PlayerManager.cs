@@ -9,9 +9,6 @@ using UnityEngine.Tilemaps;
 
 public class PlayerManager : MonoBehaviour
 {
-    public static PlayerManager Instance => instance;
-    private static PlayerManager instance;
-
     [Header("Tilemap Settings")]
     [SerializeField] Tilemap floorTile;
 
@@ -26,12 +23,11 @@ public class PlayerManager : MonoBehaviour
     private bool isMoving = false;
     private PlayerControl playercontrol;
     private Vector2 lastestMove = new Vector2();
+    //public event Action OnMoveEnd;
+    public event Action OnGameEnd;
 
     private void Awake() 
     {
-        if (instance == null)
-            instance = this;
-
         playercontrol = new PlayerControl();
         playercontrol.Player.Movement.performed += ctx => MovePlay(ctx.ReadValue<Vector2>());
     }
@@ -44,15 +40,13 @@ public class PlayerManager : MonoBehaviour
         playercontrol.Disable();
     }
 
-    public void StartSetup(String heroClass,Vector2 position)
+    public void StartSetup(HeroController hero,Vector2 position)
     {
         ResetValue();
         SetMoveable(true);
-        
-        var obj = ObjectPooling.Instance.GetFromPool(heroClass, position, Quaternion.identity);
         positionHistory.Add(position);
         transform.position = position;
-        GetNewHero(obj.GetComponent<HeroController>());
+        GetNewHero(hero);
         SetMarker();
     }
 
@@ -78,14 +72,14 @@ public class PlayerManager : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D col) 
     {
-        if (col.gameObject.tag == "RecruitHero")
+        if (col.gameObject.tag == GlobalTag.RECRUITHERO)
         {
             GetNewHero(col.GetComponent<HeroController>());
         }
-        else if (col.gameObject.tag == "LineHero")
+        else if (col.gameObject.tag == GlobalTag.LINE_HERO)
         {
             if (col.GetComponent<HeroController>() != heroList[0])
-                GameManager.Instance.EndGame();
+                OnGameEnd.Invoke();
         }
     }
 
@@ -96,7 +90,7 @@ public class PlayerManager : MonoBehaviour
         heroList.Add(hero);
         await AddHeroToLine(hero.gameObject);
 
-        hero.gameObject.tag = "LineHero";
+        hero.gameObject.tag = GlobalTag.LINE_HERO;
         hero.gameObject.GetComponent<HeroController>().ActiveUI(true);
     }
 
@@ -106,7 +100,7 @@ public class PlayerManager : MonoBehaviour
         if (MoveCheck(direction) && !isMoving)
         {
             MoveHead(direction);
-            GameManager.Instance.EnemyAction();
+            //OnMoveEnd.Invoke();
         }
     }
     public async void MoveHead(Vector2 direction)
@@ -192,11 +186,16 @@ public class PlayerManager : MonoBehaviour
         heroList.Remove(hero);
         if(heroList.Count <= 0)
         {
-            GameManager.Instance.EndGame();
+            OnGameEnd.Invoke();
             return;
         }
         ClearOldHistory();
         SetMarker();
+    }
+
+    public async void RemoveHero(HeroController hero)
+    {
+        await RemoveHeroFromLine(hero);
     }
 #endregion
 

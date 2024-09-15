@@ -2984,6 +2984,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   menuUIManager: {fileID: 1026312514}
+  player: {fileID: 625339232}
   areaMarker:
   - {fileID: 1734329613}
   - {fileID: 1599800114}
@@ -3424,7 +3425,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   floorTile: {fileID: 393806833}
-  wallTile: {fileID: 1464076567}
   moveDuration: 0.1
   heroList: []
   positionHistory: []

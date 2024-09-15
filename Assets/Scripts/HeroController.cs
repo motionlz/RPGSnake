@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,21 +6,12 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
 public class HeroController : UnitManager
 {
-    private void OnTriggerEnter2D(Collider2D col) 
+    protected override string OppositeSideTag => GlobalTag.ENEMY;
+    public event Action<HeroController> OnHeroDead;
+    public override void CheckDead()
     {
-        if (col.gameObject.tag == "Enemy")
-        {
-            TakeDamage(col.GetComponent<UnitManager>().status.atk);
-            CheckDead();
-        }
-    }
-
-    public override async void CheckDead()
-    {
-        if (HpCheck())
-        {
-            await PlayerManager.Instance.RemoveHeroFromLine(this);
-        }
+        if (IsDead())
+            OnHeroDead.Invoke(this);
         base.CheckDead();
     }
 }

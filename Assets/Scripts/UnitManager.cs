@@ -1,10 +1,9 @@
-using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
+using System;
+using System.Threading.Tasks;
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D))]
-public class UnitManager : MonoBehaviour
+public abstract class UnitManager : MonoBehaviour
 {
     [SerializeField] Rigidbody2D rigidbody;
     [SerializeField] BoxCollider2D boxCollider;
@@ -14,12 +13,11 @@ public class UnitManager : MonoBehaviour
 
     [Header("Stat")]
     public CharacterStatus status;
-    //[SerializeField] HeroStatus upgradeStat;
     private float currentHp;
-
+    protected abstract string OppositeSideTag { get; }
     public virtual void Awake() 
     {
-        ResetValue();
+        RestoreHP();
     }
     private void OnEnable() 
     {
@@ -31,7 +29,7 @@ public class UnitManager : MonoBehaviour
         boxCollider = GetComponent<BoxCollider2D>();
     }
 
-    public void ResetValue()
+    public void RestoreHP()
     {
         currentHp = status.hp;
         UpdateUI();
@@ -55,16 +53,22 @@ public class UnitManager : MonoBehaviour
 
     public virtual void CheckDead()
     {
-        if (HpCheck())
+        if (IsDead())
         {
             this.gameObject.SetActive(false);
-            //Destroy(this.gameObject);
         }
     }
-    public bool HpCheck()
+    public bool IsDead()
     {
-        if(currentHp <= 0)
-            return true;
-        return false;
+        return currentHp <= 0;
+    }
+
+    private void OnTriggerEnter2D(Collider2D col) 
+    {
+        if (col.gameObject.CompareTag(OppositeSideTag))
+        {
+            TakeDamage(col.GetComponent<UnitManager>().status.atk);
+            CheckDead();
+        }
     }
 }
